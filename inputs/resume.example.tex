@@ -1,0 +1,49 @@
+% Example resume for repo-to-resume — fictional person, safe to publish.
+% Self-contained: compiles with a stock LaTeX install (tectonic/pdflatex), no custom class.
+\documentclass[letterpaper,11pt]{article}
+\usepackage[margin=0.7in]{geometry}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+\pagestyle{empty}
+\setlist[itemize]{leftmargin=1.2em,itemsep=1pt,topsep=2pt}
+\titleformat{\section}{\large\bfseries}{}{0em}{}[\titlerule]
+\titlespacing{\section}{0pt}{8pt}{4pt}
+\newcommand{\resumeItem}[1]{\item #1}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE \textbf{Alex Rivera}}\\[2pt]
+  alex.rivera@example.com $\cdot$ github.com/alexrivera-example $\cdot$ alexrivera.example.com
+\end{center}
+
+\section{Education}
+\textbf{State University} \hfill 2023 -- 2027\\
+B.S. Computer Science \hfill GPA: 3.8
+
+\section{Experience}
+\textbf{Software Engineering Intern, Northwind Labs} \hfill Summer 2026
+\begin{itemize}
+  \resumeItem{Built a 30-route FastAPI service backed by PostgreSQL, exposing auth, billing, and reporting endpoints for an internal analytics tool.}
+  \resumeItem{Cut median API latency by 40\% by adding a Redis cache layer and batching N+1 database reads.}
+\end{itemize}
+
+\section{Projects}
+\textbf{Tempo} — real-time collaboration board \hfill React, TypeScript, Node.js
+\begin{itemize}
+  \resumeItem{Architected a real-time sync layer over WebSockets with conflict-free merge, keeping boards consistent across concurrent editors.}
+  \resumeItem{Shipped end to end and deployed on Docker with a GitHub Actions CI pipeline running a 20-file test suite.}
+\end{itemize}
+
+\textbf{Sift} — CLI log analyzer \hfill Python
+\begin{itemize}
+  \resumeItem{Wrote a streaming parser that processes multi-gigabyte logs in constant memory, surfacing error clusters by frequency.}
+\end{itemize}
+
+\section{Skills}
+\textbf{Languages:} Python, TypeScript, JavaScript, SQL, Java\\
+\textbf{Frameworks:} FastAPI, React, Node.js, Express\\
+\textbf{Tools:} PostgreSQL, Redis, Docker, Git, GitHub Actions
+
+\end{document}
