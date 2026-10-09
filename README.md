@@ -1,34 +1,54 @@
 # repo-to-resume
 
-Your code already proves what you built. This turns it into resume bullets that are actually
-true — you just ask Claude, in plain English.
+Your code already proves what you built. This turns it into resume bullets you can defend
+in an interview.
 
-No made-up metrics. Every bullet traces back to real evidence in your repo, and anything it
-can't prove gets flagged for you to confirm. Because you have to defend every line in an
-interview.
+A Claude Code skill. Point it at a repo and it reads what's actually there: the stack, the
+endpoints, the tests, the git history, how much of it you wrote. Then it writes bullets
+from that evidence, checks them against the job you want, and edits your LaTeX resume in
+place.
 
-## Get started
+**Honest by construction.** Every bullet traces back to something in the repo. Numbers
+the code can't prove get flagged for you to confirm, never invented.
 
-**1. Install it (one time).** Clone it straight into your Claude Code skills folder — the
-skill has to live under `~/.claude/skills/` to be discovered, so clone it right there:
+---
 
-```bash
-git clone https://github.com/keananwongso/repo-to-resume.git \
-  ~/.claude/skills/repo-to-resume
+## Install
+
+Once, globally. It works in every project after that.
+
+```
+/plugin install repo-to-resume --marketplace keananwongso/repo-to-resume
 ```
 
-Restart Claude Code once and it picks up the `/repo-resume` skill automatically. (No
-`pip install` — the scripts use only the Python standard library.)
+Or clone it straight into your skills folder:
 
-<sub>Prefer to keep the repo in your normal projects folder? Clone it anywhere, then either
-symlink it in (`ln -s /path/to/repo-to-resume ~/.claude/skills/repo-to-resume`) or launch
-with `claude --add-dir /path/to/repo-to-resume`.</sub>
+```bash
+git clone https://github.com/keananwongso/repo-to-resume.git ~/.claude/skills/repo-to-resume
+```
 
-**2. Give it your resume.** Drop your resume into the skill's `inputs/` folder — `.tex`,
-`.pdf`, or `.md`, whatever you have. (Or just paste it into the chat.) Same for a job posting
-you're targeting.
+Restart Claude Code. Nothing to `pip install`, the scripts are plain Python.
 
-**3. Talk to Claude.** Open Claude Code inside any project and say what you want:
+## Set up your hub
+
+The skill is the tool. Your resume lives somewhere else, in a folder that's yours:
+
+```
+~/resume/
+  resume.tex       your resume
+  CONTEXT.md       your rules and hard facts, read every session
+  jobs/            postings you're targeting
+  logs/            what changed each session, and what's still open
+  inspo/           resumes you admire
+  build/           compiled PDFs and previews
+```
+
+Ask Claude to *"set up my resume hub"* and point it at your current resume. It creates the
+folder and remembers where it is. Updating the skill never touches it.
+
+## Use it
+
+Open Claude Code anywhere and say what you want.
 
 > "turn this repo into resume bullets"
 >
@@ -36,76 +56,64 @@ you're targeting.
 >
 > "tailor my resume to this role and show me the preview"
 >
-> "what keywords am I missing for this job?"
+> "what keywords am I missing?"
 
-That's it. It reads your code, checks it against the job, and writes honest bullets you can
-actually stand behind.
+Inside a code repo it pulls evidence from that repo. Inside your hub it works on your
+resume. Either way it reads your `CONTEXT.md` first.
 
 ---
 
-## Not using Claude Code?
+## Why it exists
 
-The same thing runs as plain Python scripts (standard library, nothing to install). From a
-clone of the repo:
+Most resume tools write what sounds good. Then you're in an interview defending a 40%
+number you never measured.
 
-```bash
-# Turn a repo into evidenced facts
-python3 scripts/analyze_repo.py /path/to/your/project --author "Your Name"
+This one works the other way round. It starts from what the code shows and only claims
+that. It tells "built" from "contributed to" using your real share of commits. If a job
+wants a skill none of your repos show, it says so instead of stuffing the keyword in.
 
-# How well does a resume match a job posting?
-python3 scripts/keyword_match.py --jd inputs/job-description.md --resume inputs/resume.tex
+`CONTEXT.md` is where it gets good. Every correction you make ("never say containment",
+"that number was disproven") goes in there, and it holds you to it next time. After a few
+sessions it writes like you.
 
-# Compile a LaTeX resume to PDF + preview
-./build.sh inputs/resume.tex
-```
+---
 
-Want to see it work first? The repo ships a fictional resume + job posting, so this runs out
-of the box:
-
-```bash
-python3 scripts/keyword_match.py \
-    --jd inputs/job-description.example.md \
-    --resume inputs/resume.example.tex
-```
-
-## What's inside
+## Shape
 
 ```
+SKILL.md                  what Claude follows
 scripts/
-  analyze_repo.py     # evidenced facts from a repo (stack, endpoints, git, tests)
-  keyword_match.py    # JD-vs-resume keyword coverage (match %, priority, gaps)
-  render_resume.py    # compile a .tex resume to PDF + preview PNG
+  analyze_repo.py         evidence from a repo: stack, endpoints, git, tests
+  keyword_match.py        resume vs job posting: match %, priority, gaps
+  render_resume.py        .tex to PDF, page count, preview PNG
+  hub.py                  creates and finds your hub
 guides/
-  phrasing-guide.md   # how to write bullets that land (the 8 rules)
-  industry-vocab.md   # example: build a vocabulary guide for a target industry
+  phrasing-guide.md       the register strong resumes write in
+  industry-vocab.md       example of a vocabulary guide for one industry
 references/
-  latex-editing.md    # the surgical in-place .tex editing method
-CONTEXT.template.md   # scaffold for your persistent notes → copy to CONTEXT.md
-inputs/               # your resume + job posting go here (gitignored)
-inspo/                # resumes you admire go here (gitignored)
+  latex-editing.md        the surgical in-place edit method
+templates/CONTEXT.md      starting point for your rules
+examples/                 a fictional resume and job posting
 ```
-
-Your real files (`resume.tex`, `job-description.md`, anything in `inspo/`) are gitignored, so
-working inside the repo never commits your personal data.
 
 ## Requirements
 
-- **Python 3** — standard library only, nothing to `pip install`.
-- To compile a LaTeX resume: a TeX engine ([`tectonic`](https://tectonic-typesetting.github.io/)
-  is the lightest — one binary; MacTeX / TeX Live also work), plus `pdftoppm` (poppler) or
-  macOS `sips` for the PNG preview.
-- Optional: `pdftotext` (poppler) so keyword matching can read a `.pdf` resume directly.
+- **Python 3.** Standard library only.
+- **A TeX engine** to compile a LaTeX resume. [`tectonic`](https://tectonic-typesetting.github.io/)
+  is the lightest, one binary (`brew install tectonic`). MacTeX and TeX Live work too.
+- **poppler** (`pdftoppm`, `pdftotext`) for previews and reading PDF resumes. On macOS,
+  `sips` covers the preview if poppler isn't there.
 
-## Why "honest" is the whole point
+## Without Claude Code
 
-- Bullets are grounded in repo evidence, not guesses.
-- It never states a usage, latency, or adoption number that isn't proven or confirmed by you.
-- It tells "built" from "contributed to" using your real share of commits.
-- If a job wants a skill none of your repos show, it says so — instead of keyword-stuffing.
+The scripts run on their own from a clone:
 
-Make it yours: copy `CONTEXT.template.md` to `CONTEXT.md` and jot your standing preferences and
-hard facts. Claude reads it first each session, and it overrides the defaults.
+```bash
+python3 scripts/analyze_repo.py /path/to/project --author "Your Name"
+python3 scripts/keyword_match.py --jd examples/job-description.md --resume examples/resume.tex
+python3 scripts/render_resume.py examples/resume.tex
+```
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

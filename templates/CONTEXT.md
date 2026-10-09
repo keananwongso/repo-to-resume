@@ -1,10 +1,10 @@
 # CONTEXT.md — persistent memory for your resume hub
 
-Copy this file to `CONTEXT.md` (which is gitignored) and fill it in as you go. It is the
-working memory of this hub: the skill reads it first each session so it doesn't re-ask what
-you've already decided. Delete the guidance in each section as you replace it with your own.
+This file lives in your resume hub and is the hub's working memory. The skill reads it first
+each session so it doesn't re-ask what you've already decided, and adds to it when you state
+a new rule. Delete the guidance in each section as you replace it with your own.
 
-Whatever you record here **overrides the default style rules** in `guides/phrasing-guide.md`.
+Whatever you record here **overrides the skill's default style rules**.
 
 Last updated: <date>
 
@@ -39,7 +39,7 @@ The non-negotiable truth of your background — the guardrails against fabricati
 
 ## Toolchain
 
-- How you compile: e.g. `./build.sh inputs/resume.tex` → `build/<name>.pdf` + preview PNG.
+- How you compile: e.g. `render_resume.py resume.tex` → `build/resume.pdf` + preview PNG.
 - Where the final application PDF is produced (e.g. Overleaf for real icons).
 - What "show me the resume" should do.
 

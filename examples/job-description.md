@@ -1,7 +1,7 @@
 # Software Engineering Intern — Summer 2027 (example JD)
 
 This is a fictional job description shipped so the keyword-matcher runs out of the box.
-Replace it with a real posting (as `inputs/job-description.md`, which is gitignored).
+Replace it with a real posting (in your resume hub, e.g. `~/resume/jobs/`).
 
 ## About the role
 We're hiring software engineering interns to build and ship backend services and data

@@ -1,0 +1,15 @@
+{
+  "name": "repo-to-resume",
+  "description": "Honest, evidence-backed resume content from your code.",
+  "owner": {
+    "name": "Keanan Wongso",
+    "url": "https://github.com/keananwongso"
+  },
+  "plugins": [
+    {
+      "name": "repo-to-resume",
+      "source": "./",
+      "description": "Turn a codebase into honest, evidence-backed resume bullets, match a resume against a job posting, and edit and preview a LaTeX resume in place."
+    }
+  ]
+}

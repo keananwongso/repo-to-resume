@@ -1,11 +1,11 @@
-# Your real working files — never commit these.
-# The shipped examples use an `.example.` infix and are NOT ignored.
-/inputs/resume.tex
-/inputs/job-description.md
-/inputs/*.pdf
-/inspo/*.pdf
+# Your resume data belongs in your hub (default ~/resume), not here. These guard against
+# it landing in the repo by accident.
 /CONTEXT.md
-/build/
+/inputs/
+/inspo/
+/jobs/
+/logs/
+build/
 
 # Anything that looks like a compiled resume
 *.pdf
@@ -21,3 +21,6 @@
 # OS / editor
 .DS_Store
 .claude/settings.local.json
+
+# Python
+__pycache__/

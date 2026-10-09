@@ -66,17 +66,20 @@ second page. After edits, compile and check the preview:
 Use the render helper to build the PDF and produce preview images:
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/render_resume.py path/to/resume.tex --outdir build
+python3 ${CLAUDE_SKILL_DIR}/scripts/render_resume.py path/to/resume.tex
 ```
 
-It returns JSON with the `pdf` path and `previews` (PNG paths). Show the preview image
-inline so the user sees the result. On failure it returns `log_tail`; read it, fix the
+Output goes to `build/` next to the `.tex` (override with `--outdir`). It returns JSON
+with the `pdf` path, `pages`, `previews` (PNG paths) and `warnings`. Show the preview image
+inline so the user sees the result, and flag it if `pages` is over 1. On failure it returns `log_tail`; read it, fix the
 offending line (usually an unescaped `%`, `&`, `_`, `#`, or `$` in newly inserted text),
 and recompile. Remember to escape those characters in LaTeX content: `\%  \&  \_  \#  \$`.
 
 If no LaTeX engine is installed in the user's environment, tell them: install a TeX
 distribution (`tectonic` is the lightest, a single binary; or MacTeX / TeX Live), or
-compile on Overleaf. The helper already tries `latexmk` then `pdflatex`.
+compile on Overleaf. The helper tries `latexmk`, then `pdflatex`, then `tectonic`. With
+tectonic it compiles a temporary copy with fontawesome5 swapped out (it crashes tectonic on
+some machines), so icons show as arrows in the preview; the user's `.tex` is never changed.
 
 ## The full loop
 

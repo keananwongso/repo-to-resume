@@ -25,40 +25,63 @@ import sys
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# Skill taxonomy: canonical -> aliases (all matched case-insensitively, word-bounded).
+# Skill taxonomy: canonical -> aliases.
+#   plain string  -> case-insensitive whole-word literal ("python")
+#   rx("...")     -> case-insensitive regex
+#   cs("...")     -> CASE-SENSITIVE regex, for skills that are also everyday English
+#                    ("Go from idea to launch", "react quickly", "the rest of", "Spring
+#                    2027", "R&D"). Matching the proper-noun casing plus a guard against
+#                    common phrases keeps those out of the coverage score.
 # Deliberately skill-focused. Brand mentions like "Google Ads" are intentionally NOT
 # here: they show up in JDs as prose ("from Google Ads to Chrome") and aren't things a
 # candidate can truthfully add, so chasing them is noise.
 # ---------------------------------------------------------------------------
 
+
+def rx(pattern):
+    return re.compile(pattern, re.I)
+
+
+def cs(pattern):
+    return re.compile(pattern)
+
+
+# A capitalized word followed by one of these is English, not the technology.
+def _not_followed_by(*words):
+    return r"(?!\s+(?:" + "|".join(words) + r")\b)"
+
+
 TAXONOMY = {
     # languages
     "Python": ["python"],
-    "JavaScript": ["javascript", "js"],
-    "TypeScript": ["typescript", "ts"],
+    "JavaScript": ["javascript", cs(r"(?<![.\w])JS\b")],
+    "TypeScript": ["typescript", cs(r"(?<![.\w])TS\b")],
     "Java": ["java"],
-    "C": [r"\bc\b(?![+#])"],
-    "C++": [r"c\+\+", "cpp"],
-    "C#": [r"c#", "c-sharp", "csharp"],
-    "Go": ["golang", r"\bgo\b"],
-    "Rust": ["rust"],
-    "Ruby": ["ruby"],
+    "C": [cs(r"(?<![-\w])C\b(?![+#&]|-(?:suite|level))")],
+    "C++": [rx(r"(?<!\w)c\+\+"), "cpp"],
+    "C#": [rx(r"(?<!\w)c#"), "c-sharp", "csharp"],
+    "Go": ["golang", cs(r"\bGo\b" + _not_followed_by(
+        "to", "from", "live", "beyond", "above", "deep", "further", "after", "the"))],
+    "Rust": [cs(r"\bRust\b")],
+    "Ruby": [cs(r"\bRuby\b")],
     "PHP": ["php"],
-    "Swift": ["swift"],
+    "Swift": [cs(r"\bSwift(?:UI)?\b")],
     "Kotlin": ["kotlin"],
-    "Scala": ["scala"],
+    "Scala": [cs(r"\bScala\b")],
     "SQL": ["sql"],
-    "R": [r"\br\b"],
+    "R": [cs(r"(?<![\w&-])R\b(?![&'+-])")],
     # frameworks / libs
-    "React": ["react"],
+    "React": [cs(r"\bReact(?:\.js|JS)?\b" + _not_followed_by(
+        "to", "quickly", "fast", "swiftly", "accordingly", "calmly", "well"))],
     "React Native": ["react native"],
     "Next.js": ["next.js", "nextjs"],
-    "Node.js": ["node.js", "nodejs", r"\bnode\b"],
-    "Express": ["express"],
+    "Node.js": ["node.js", "nodejs", cs(r"\bNode\b")],
+    "Express": [rx(r"\bexpress\.?js\b"), cs(r"\bExpress\b" + _not_followed_by(
+        "your", "yourself", "interest", "ideas", "thoughts", "opinions", "complex"))],
     "Django": ["django"],
     "Flask": ["flask"],
     "FastAPI": ["fastapi"],
-    "Spring": ["spring boot", "spring"],
+    "Spring": ["spring boot", cs(r"\bSpring\b(?!\s+(?:\d{2,4}|term|semester|quarter|break|and\s+Summer)\b)")],
     "PyTorch": ["pytorch"],
     "TensorFlow": ["tensorflow"],
     "Tailwind CSS": ["tailwind"],
@@ -69,44 +92,42 @@ TAXONOMY = {
     "Docker": ["docker"],
     "Kubernetes": ["kubernetes", "k8s"],
     "Terraform": ["terraform"],
-    "CI/CD": ["ci/cd", "continuous integration", "continuous delivery", "github actions"],
-    "Git": [r"\bgit\b"],
+    "CI/CD": [rx(r"\bci/cd\b"), "continuous integration", "continuous delivery", "github actions"],
+    "Git": ["git"],
     "Linux": ["linux"],
     "Unix": ["unix"],
     "PostgreSQL": ["postgresql", "postgres"],
     "MongoDB": ["mongodb", "mongo"],
     "Redis": ["redis"],
     "GraphQL": ["graphql"],
-    "REST": ["rest api", "restful", r"\brest\b"],
+    "REST": ["rest api", "rest apis", "restful", cs(r"\bREST\b")],
     "Kafka": ["kafka"],
-    "Spark": ["spark"],
+    "Spark": ["apache spark", "pyspark", cs(r"\bSpark\b(?!\s+(?:interest|curiosity|joy|ideas|conversations?)\b)")],
     # concepts
     "data structures": ["data structures"],
     "algorithms": ["algorithms"],
-    "machine learning": ["machine learning", r"\bml\b"],
-    "AI": ["artificial intelligence", r"\bai\b"],
-    "natural language processing": ["natural language processing", "nlp"],
-    "distributed systems": ["distributed", "parallel systems", "distributed and parallel"],
-    "web application development": ["web application", "web app development", "web development"],
-    "mobile application development": ["mobile application", "mobile app development"],
+    "machine learning": ["machine learning", cs(r"\bML\b")],
+    "AI": ["artificial intelligence", cs(r"\bAI\b")],
+    "natural language processing": ["natural language processing", cs(r"\bNLP\b")],
+    "distributed systems": ["distributed systems", "distributed computing",
+                            "parallel systems", "distributed and parallel"],
+    "web application development": ["web application", "web applications",
+                                     "web app development", "web development"],
+    "mobile application development": ["mobile application", "mobile applications",
+                                        "mobile app development"],
     "information retrieval": ["information retrieval"],
-    "networking": ["networking"],
-    "security": ["security software", r"\bsecurity\b"],
+    "networking": ["computer networking", "network protocols", rx(r"\bnetworking\b(?!\s+(?:events?|opportunit))")],
+    "security": ["security software", "application security", "cybersecurity", "security"],
     "troubleshooting": ["troubleshooting", "debugging", "code-level troubleshooting"],
-    "automation": ["automate", "automation"],
+    "automation": ["automate", "automated", "automation"],
     "scalability": ["scalable", "scalability", "massive scale"],
     "system design": ["system design", "large software systems", "large-scale"],
 }
 
 
 def compile_aliases(aliases):
-    pats = []
-    for a in aliases:
-        if a.startswith(r"\b") or "\\" in a or a in {r"c\+\+", r"c#"}:
-            pats.append(re.compile(a, re.I))
-        else:
-            pats.append(re.compile(r"\b" + re.escape(a) + r"\b", re.I))
-    return pats
+    return [a if isinstance(a, re.Pattern) else re.compile(r"\b" + re.escape(a) + r"\b", re.I)
+            for a in aliases]
 
 
 CANON_PATTERNS = {canon: compile_aliases(al) for canon, al in TAXONOMY.items()}
@@ -125,9 +146,10 @@ def count_in(text, canon):
 # ---------------------------------------------------------------------------
 
 def strip_latex(tex):
-    tex = re.sub(r"%.*", "", tex)                         # comments
+    tex = re.sub(r"(?<!\\)%.*", "", tex)                  # comments, but not escaped \%
+    tex = re.sub(r"\\([#&%_$])", r"\1", tex)              # \# \& \% \_ \$ -> literal (C\# -> C#)
     tex = re.sub(r"\\[a-zA-Z]+\*?(\[[^\]]*\])?", " ", tex)  # commands + optional args
-    tex = re.sub(r"[{}$&~^\\]", " ", tex)                 # residual latex chars
+    tex = re.sub(r"[{}$~^\\]", " ", tex)                  # residual latex chars
     return re.sub(r"\s+", " ", tex)
 
 
@@ -146,20 +168,40 @@ def read_resume(path):
 
 
 # ---------------------------------------------------------------------------
-# Priority: high if it appears in a required/minimum region OR is emphasized (>=2x).
+# Priority: high if it appears outside a "preferred / nice to have" section OR is
+# emphasized (>=2 mentions). JDs are split on heading lines, so a Responsibilities
+# section after Preferred counts as required again, and a stray "bonus" in prose
+# doesn't flip the rest of the posting to preferred.
 # ---------------------------------------------------------------------------
 
+PREFERRED_HEADING = re.compile(
+    r"\b(preferred|nice[\s-]to[\s-]haves?|bonus(?:\s+points)?|pluses|a plus|good to have|desired)\b", re.I)
+
+
+def is_heading(line):
+    s = line.strip()
+    if not s or len(s) > 80:
+        return False
+    if s.startswith("#") or (s.startswith("**") and s.endswith("**")):
+        return True
+    if s.endswith(":") and len(s.split()) <= 8:
+        return True
+    letters = [c for c in s if c.isalpha()]
+    return len(letters) >= 4 and all(c.isupper() for c in letters) and len(s.split()) <= 6
+
+
 def split_required_preferred(jd):
-    lower = jd.lower()
-    pref_idx = None
-    for marker in ("preferred qualifications", "nice to have", "bonus", "preferred:"):
-        i = lower.find(marker)
-        if i != -1:
-            pref_idx = i
-            break
-    if pref_idx is None:
-        return jd, ""
-    return jd[:pref_idx], jd[pref_idx:]
+    required, preferred = [], []
+    in_preferred = False
+    for line in jd.splitlines():
+        if is_heading(line):
+            in_preferred = bool(PREFERRED_HEADING.search(line))
+        elif re.match(r"\s*(preferred|nice to have|bonus)\b[^:\n]{0,40}:", line, re.I):
+            # inline label, e.g. "Preferred: Kubernetes, Go" on a single line
+            preferred.append(line)
+            continue
+        (preferred if in_preferred else required).append(line)
+    return "\n".join(required), "\n".join(preferred)
 
 
 def repo_supports(canon, repo):

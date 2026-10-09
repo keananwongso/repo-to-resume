@@ -7,14 +7,15 @@ description: >
   generated from what the code actually shows. Also use when the user pastes a job
   description and wants a keyword-coverage match (which target keywords their resume
   hits and misses, high vs low priority, like Simplify), or wants their .tex resume
-  surgically edited to close gaps and then compiled to a PDF preview. Triggers:
-  "/repo-resume", "turn this repo into resume bullets", "generate resume content from
+  surgically edited to close gaps and then compiled to a PDF preview. Also use to set up
+  a resume hub (a folder for the user's resume, preferences and job postings). Triggers:
+  "/repo-to-resume", "turn this repo into resume bullets", "set up my resume hub", "generate resume content from
   this project", "how well does my resume match this JD", "tailor my resume to this job",
   "edit my latex resume for this role", "what keywords am I missing". Prefer this skill
   over free-handing bullets or eyeballing keyword match, because it grounds every claim
   in evidence pulled from the repo and computes coverage deterministically instead of
   guessing.
-allowed-tools: Bash(python3 *) Bash(latexmk *) Bash(pdflatex *) Bash(pdftoppm *)
+allowed-tools: Bash(python3 *) Bash(latexmk *) Bash(pdflatex *) Bash(tectonic *) Bash(pdftoppm *) Bash(pdftotext *)
 ---
 
 # Repo to Resume
@@ -25,31 +26,61 @@ and specific**: bullets are grounded in evidence the analyzer pulls from the rep
 anything that needs a real-world number the code can't prove is flagged for the user to
 fill in rather than invented.
 
-This skill assumes the common case: the user is standing inside the repo and pastes in
-some subset of {job description, target role(s), current resume}. Any of those can be
-missing. Use whatever is provided; do not block on the rest.
+This skill is installed once, globally. The user is usually standing inside a code repo,
+or inside their resume hub, and may paste some subset of {job description, target
+role(s), current resume}. Any of those can be missing. Use whatever is available; do not
+block on the rest.
+
+## Where things live: the skill vs. the user's hub
+
+- **The skill** (this directory, `${CLAUDE_SKILL_DIR}`) holds only the tool: scripts,
+  guides, templates, examples. Never write user data here; it is replaced on update.
+- **The hub** is the user's own folder (default `~/resume`) holding their resume,
+  `CONTEXT.md` (standing preferences and hard facts), `jobs/` (postings), `logs/`
+  (session notes), `inspo/` (resumes they admire) and `build/` (compiled PDFs).
+
+### Step 0: find the hub (every session, before writing anything)
+
+```bash
+python3 ${CLAUDE_SKILL_DIR}/scripts/hub.py locate
+```
+
+It checks the current directory and its parents for a `CONTEXT.md`, then the hub path
+remembered in `~/.config/repo-to-resume/config.json`.
+
+- **Found** → read `context_md` fully before writing anything. Its rules and hard facts
+  override this file's defaults. Use the listed `resumes` and `jobs` instead of asking the
+  user to paste them; if there are several, ask which one applies.
+- **Not found** → don't block. Work from what the user pasted. When they want anything to
+  persist (a resume to edit, preferences, a job to track), offer to create a hub:
+  ```bash
+  python3 ${CLAUDE_SKILL_DIR}/scripts/hub.py init [PATH] [--resume path/to/resume.tex]
+  ```
+  `init` never overwrites existing files. Use `--example` to start from the sample resume.
+
+Save new job postings the user pastes to `jobs/<company>-<role>.md`. When the user states
+a standing preference or a hard fact ("never say X", "that number is wrong"), add it to
+`CONTEXT.md` and say so. At the end of a substantive session, write a short note to
+`logs/YYYY-MM-DD-<topic>.md`: target, what changed, decisions, open items.
 
 ## Running the bundled scripts
 
-The three scripts live in this skill's own directory, not the user's project. The
-working directory is the user's repo, so always invoke them by their skill-directory
-path. In Claude Code and plugin installs this is `${CLAUDE_SKILL_DIR}/scripts/<name>.py`;
-that variable expands to wherever the skill is installed. All examples below use it.
-Scripts are Python 3, standard library only, so no install step is needed.
+The scripts live in this skill's directory, not the user's project, so always invoke them
+by their skill-directory path: `${CLAUDE_SKILL_DIR}/scripts/<name>.py`. Pass user files
+as paths relative to the current directory or absolute; the scripts resolve them from
+where they are run. Python 3, standard library only, so there's nothing to install.
 
-Not on Claude Code? The same scripts run standalone from a clone of this repo — just
-call `python3 scripts/<name>.py ...` from the repo root instead of the
-`${CLAUDE_SKILL_DIR}` path. See the README for the standalone quickstart.
+## The tools
 
-## The three tools
+- `scripts/hub.py` — creates and finds the user's resume hub (see Step 0).
 
 - `scripts/analyze_repo.py` — pulls evidenced facts from a repo (stack, endpoints, git
   history, README claims). The grounding for bullets.
 - `scripts/keyword_match.py` — computes JD-vs-resume keyword coverage (match %, high/low
   priority, covered/missing), and flags which missing keywords a repo can truthfully
   support. The targeting lens and the "Simplify-style" view.
-- `scripts/render_resume.py` — compiles a `.tex` resume to PDF and renders preview PNGs.
-  The "view."
+- `scripts/render_resume.py` — compiles a `.tex` resume to PDF (latexmk, pdflatex or
+  tectonic), counts pages, and renders preview PNGs. The "view."
 
 Bullet generation (below) uses the first. If the user has a job description and/or a
 `.tex` resume and wants matching or in-place editing, run the full tailoring loop in the
@@ -131,9 +162,8 @@ Present, in this order:
 ## Style rules (match these exactly)
 
 These are strong defaults for resume writing, distilled from resumes that landed offers
-(see `guides/phrasing-guide.md`). Hold to them by default, and adapt them to any standing
-preferences the user records in their own `CONTEXT.md` — that file, when present, wins over
-these defaults.
+(see `${CLAUDE_SKILL_DIR}/guides/phrasing-guide.md`). Hold to them by default. The user's
+hub `CONTEXT.md`, when present, wins over these defaults.
 
 - **Nouns describe systems, verbs describe the engineer.** "Architected a real-time
   sync layer" not "worked on real-time features." The system is the noun; what the
@@ -207,22 +237,24 @@ have a `.tex` resume they want edited in place and previewed, run this loop:
 
 3. **Edit the `.tex` surgically.** Apply changes as minimal string replacements to
    individual content lines only, never a rewrite and never the preamble. Read
-   `references/latex-editing.md` for the exact method: locating anchors, which macros
+   `${CLAUDE_SKILL_DIR}/references/latex-editing.md` for the exact method: locating anchors, which macros
    hold editable content, escaping LaTeX special characters, and page-fit awareness.
 
 4. **View.** Compile and preview:
    ```bash
-   python3 ${CLAUDE_SKILL_DIR}/scripts/render_resume.py resume.tex --outdir build
+   python3 ${CLAUDE_SKILL_DIR}/scripts/render_resume.py path/to/resume.tex
    ```
-   Show the returned preview PNG inline. If it overflowed one page, tighten. If compile
-   failed, read `log_tail`, fix the offending line, recompile.
+   Output goes to `build/` next to the `.tex`. Show the returned preview PNG inline. If
+   `pages` is more than 1, tighten. Relay any `warnings` (e.g. icons replaced for a
+   tectonic preview). If compile failed, read `log_tail`, fix the offending line,
+   recompile.
 
 5. **Re-score and report.** Re-run `keyword_match.py` on the edited resume and show
    before to after coverage, what changed, what's still missing and why, and any numbers
    still needing confirmation.
 
 Full details of the LaTeX editing method and the compile/view step live in
-`references/latex-editing.md`.
+`${CLAUDE_SKILL_DIR}/references/latex-editing.md`.
 
 ## The honesty contract (do not break)
 
